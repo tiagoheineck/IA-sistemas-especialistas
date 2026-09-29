@@ -1,0 +1,2412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistemas Especialistas e Motores de Inferência</title>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --primary-light: #334155;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-light: #dbeafe;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --success-light: #dcfce7;
+            --danger: #dc2626;
+            --danger-light: #fee2e2;
+            --warning: #d97706;
+            --warning-light: #fef3c7;
+            --border: #e2e8f0;
+            --code-bg: #1e1e2e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Trava rolagem da página quando estiver no Modo Aula */
+        body.modo-aula-active {
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, #0f172a 100%);
+            color: white;
+            padding: 0.85rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .header-content {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+        }
+
+        .logo-area svg {
+            width: 28px;
+            height: 28px;
+            fill: #60a5fa;
+        }
+
+        .logo-area h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        nav {
+            display: flex;
+            gap: 0.4rem;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.2rem;
+            border-radius: 8px;
+        }
+
+        nav button {
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            padding: 0.45rem 0.9rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        nav button:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        nav button.active {
+            background: var(--accent);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+        }
+
+        main {
+            flex: 1;
+            max-width: 1300px;
+            width: 100%;
+            margin: 1.25rem auto;
+            padding: 0 1.25rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .view-section {
+            display: none;
+            animation: fadeIn 0.25s ease-in-out;
+            width: 100%;
+            flex: 1;
+        }
+
+        .view-section.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ================= HUB / INDEX ================= */
+        .hub-hero {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem 1rem 0.5rem;
+        }
+
+        .hub-hero h2 {
+            font-size: 2.2rem;
+            color: var(--primary);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .hub-hero p {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .hub-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 2rem;
+            box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hub-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--accent);
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+
+        .hub-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 16px 25px -8px rgba(0, 0, 0, 0.1);
+            border-color: #cbd5e1;
+        }
+
+        .hub-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            font-size: 2.4rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .hub-card h3 {
+            font-size: 1.4rem;
+            color: var(--primary);
+            margin-bottom: 0.6rem;
+        }
+
+        .hub-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 1.25rem;
+            flex: 1;
+        }
+
+        .hub-card .card-features {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .hub-card .card-features li {
+            font-size: 0.88rem;
+            color: var(--primary-light);
+            margin-bottom: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .hub-card .card-features li::before {
+            content: "✓";
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .btn-card {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.25rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-card:hover {
+            background: var(--accent-hover);
+        }
+
+        /* ================= MODO AULA: APRESENTAÇÃO CABE NA TELA ================= */
+        .aula-container {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 1.25rem 1.75rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 105px);
+            min-height: 520px;
+        }
+
+        .aula-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 0.6rem;
+            margin-bottom: 0.6rem;
+            border-bottom: 1.5px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .aula-title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .aula-title-group h2 {
+            font-size: 1.25rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .shortcut-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: #f1f5f9;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .shortcut-key {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            font-weight: bold;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .slide-progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 999px;
+            margin-bottom: 0.8rem;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .slide-progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.25s ease;
+        }
+
+        .slide-viewport {
+            flex: 1;
+            background: #ffffff;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem 1.75rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.015);
+            overflow: hidden;
+        }
+
+        .slide-header {
+            margin-bottom: 0.6rem;
+            border-bottom: 1.5px solid var(--accent-light);
+            padding-bottom: 0.4rem;
+            flex-shrink: 0;
+        }
+
+        .slide-header h3 {
+            font-size: 1.55rem;
+            color: var(--primary);
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .slide-header .slide-subtitle {
+            color: var(--accent);
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-top: 0.15rem;
+        }
+
+        .slide-body {
+            font-size: 1.02rem;
+            color: #334155;
+            line-height: 1.5;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide-body p {
+            margin-bottom: 0.5rem;
+        }
+
+        .slide-body ul, .slide-body ol {
+            margin-left: 1.5rem;
+            margin-top: 0.3rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .slide-body li {
+            margin-bottom: 0.35rem;
+        }
+
+        .concept-box {
+            background: #f1f5f9;
+            border-left: 4px solid var(--accent);
+            padding: 0.65rem 1rem;
+            border-radius: 0 6px 6px 0;
+            margin: 0.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .logic-formula {
+            font-family: 'Consolas', 'Fira Code', 'Courier New', monospace;
+            background: #e2e8f0;
+            color: #0f172a;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .table-custom {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.4rem 0;
+            font-size: 0.88rem;
+        }
+
+        .table-custom th, .table-custom td {
+            border: 1px solid var(--border);
+            padding: 0.5rem 0.7rem;
+            text-align: left;
+        }
+
+        .table-custom th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .table-custom tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        /* Comparativo Vantagens e Desvantagens com Exemplos */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 0.25rem;
+        }
+
+        .comparison-col {
+            background: #ffffff;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .comparison-col.col-vent {
+            border-top: 4px solid var(--success);
+            background: #fcfdfc;
+        }
+
+        .comparison-col.col-desvant {
+            border-top: 4px solid var(--danger);
+            background: #fdfcfc;
+        }
+
+        .comparison-title {
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .item-block {
+            font-size: 0.86rem;
+            line-height: 1.4;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px dashed var(--border);
+        }
+
+        .item-block:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .item-name {
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        .item-example {
+            color: #475569;
+            background: #f1f5f9;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 0.15rem;
+            font-size: 0.8rem;
+        }
+
+        /* Grid de Casos de Uso */
+        .usecases-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .usecase-card {
+            background: #ffffff;
+            border: 1.5px solid var(--border);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 0.65rem 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .usecase-header {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .usecase-desc {
+            font-size: 0.83rem;
+            color: #475569;
+            line-height: 1.35;
+        }
+
+        .usecase-rule {
+            font-family: 'Consolas', monospace;
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            margin-top: 0.15rem;
+            border-left: 2px solid var(--accent);
+        }
+
+        .slide-footer {
+            margin-top: 0.6rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .btn-nav {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.55rem 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-nav:hover:not(:disabled) {
+            background: var(--primary-light);
+        }
+
+        .btn-nav:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-fullscreen {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: 0.2s;
+        }
+
+        .btn-fullscreen:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+        }
+
+        /* ================= MODO LABORATÓRIO & CHECKPOINTS DE RESOLUÇÃO ================= */
+        .content-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            width: 100%;
+        }
+
+        .mode-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .mode-title {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .mode-title h2 {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .badge {
+            background: var(--accent-light);
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 999px;
+            text-transform: uppercase;
+        }
+
+        .lab-section {
+            margin-bottom: 2.25rem;
+        }
+
+        .lab-section h3 {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .lab-section p {
+            font-size: 1rem;
+            color: #334155;
+            margin-bottom: 0.75rem;
+        }
+
+        .code-container {
+            position: relative;
+            margin: 1.25rem 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .code-header {
+            background: #181825;
+            padding: 0.5rem 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #313244;
+        }
+
+        .code-title {
+            color: #a6adc8;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .btn-copy {
+            background: #313244;
+            color: #cdd6f4;
+            border: 1px solid #45475a;
+            padding: 0.3rem 0.65rem;
+            font-size: 0.78rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: 0.2s;
+        }
+
+        .btn-copy:hover {
+            background: #45475a;
+            color: white;
+        }
+
+        pre {
+            background: var(--code-bg);
+            color: #cdd6f4;
+            padding: 1.25rem;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.55;
+        }
+
+        .step-card {
+            background: #ffffff;
+            border: 1.5px solid var(--border);
+            border-left: 5px solid var(--accent);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .step-card h4 {
+            font-size: 1.15rem;
+            color: var(--primary);
+            margin-bottom: 0.6rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .step-card .time-tag {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: var(--bg);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+        }
+
+        .step-card ul {
+            margin-left: 1.25rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-card li {
+            margin-bottom: 0.35rem;
+        }
+
+        /* Checkpoint interativo do passo */
+        .checkpoint-box {
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-top: 1.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .checkpoint-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .checkpoint-q-text {
+            font-size: 0.95rem;
+            color: #334155;
+            font-weight: 600;
+            margin-bottom: 0.85rem;
+            line-height: 1.45;
+        }
+
+        .checkpoint-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            margin-bottom: 1rem;
+        }
+
+        .checkpoint-opt-label {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.6rem 0.85rem;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #334155;
+            transition: all 0.15s;
+        }
+
+        .checkpoint-opt-label:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+
+        .checkpoint-opt-label input {
+            margin-top: 0.2rem;
+            margin-right: 0.6rem;
+            accent-color: var(--accent);
+        }
+
+        .btn-validate-step {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.55rem 1.1rem;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-validate-step:hover {
+            background: var(--accent-hover);
+        }
+
+        .checkpoint-feedback {
+            margin-top: 0.85rem;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            display: none;
+            line-height: 1.4;
+        }
+
+        .checkpoint-feedback.correct {
+            background: var(--success-light);
+            color: #14532d;
+            border-left: 4px solid var(--success);
+            display: block;
+        }
+
+        .checkpoint-feedback.incorrect {
+            background: var(--danger-light);
+            color: #991b1b;
+            border-left: 4px solid var(--danger);
+            display: block;
+        }
+
+        /* Área da Resolução Revelada */
+        .step-solution {
+            display: none;
+            margin-top: 1.5rem;
+            animation: slideDown 0.35s ease-out forwards;
+        }
+
+        .step-solution.unlocked {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .solution-badge-header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 0.6rem 1rem;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .solution-content {
+            border: 1.5px solid #10b981;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            background: #ffffff;
+            padding: 1.25rem;
+        }
+
+        /* ================= MODO DESAFIO ================= */
+        .quiz-intro {
+            background: var(--accent-light);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #bfdbfe;
+        }
+
+        .quiz-intro h3 {
+            color: #1e40af;
+            margin-bottom: 0.4rem;
+            font-size: 1.1rem;
+        }
+
+        .quiz-intro p {
+            color: #1e3a8a;
+            font-size: 0.95rem;
+        }
+
+        .question-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+        }
+
+        .question-card.answered-correct {
+            border-color: var(--success);
+            background: #f0fdf4;
+        }
+
+        .question-card.answered-incorrect {
+            border-color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .question-title {
+            font-size: 1.05rem;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.45;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.75rem 0.9rem;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 0.95rem;
+            color: #334155;
+        }
+
+        .option-label:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .option-label input {
+            margin-top: 0.2rem;
+            margin-right: 0.65rem;
+            transform: scale(1.1);
+            accent-color: var(--accent);
+        }
+
+        .option-label.correct-choice {
+            border-color: var(--success);
+            background: var(--success-light);
+            color: #14532d;
+            font-weight: 600;
+        }
+
+        .question-explanation {
+            margin-top: 0.85rem;
+            padding: 0.75rem 1rem;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid var(--accent);
+            font-size: 0.9rem;
+            color: #334155;
+            display: none;
+        }
+
+        .result-box {
+            display: none;
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            border: 2px solid var(--accent);
+            margin-top: 1.5rem;
+        }
+
+        .score-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: var(--accent-light);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0 auto 1rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1.25rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+            background: white;
+            flex-shrink: 0;
+        }
+
+        /* Oculta footer no modo aula para economizar 100% de tela */
+        body.modo-aula-active footer {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            nav {
+                justify-content: center;
+            }
+            .aula-container {
+                height: auto;
+                min-height: auto;
+            }
+            body.modo-aula-active {
+                overflow: auto;
+                height: auto;
+            }
+            .comparison-grid, .usecases-grid {
+                grid-template-columns: 1fr;
+            }
+            .shortcut-hint {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-content">
+        <div class="logo-area" onclick="navigate('hub')">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+            <h1>Sistemas Especialistas e Motores de Inferência</h1>
+        </div>
+        <nav>
+            <button onclick="navigate('hub')" id="nav-hub" class="active">🏠 Início</button>
+            <button onclick="navigate('aula')" id="nav-aula">📖 Modo Aula</button>
+            <button onclick="navigate('lab')" id="nav-lab">🧪 Modo Laboratório</button>
+            <button onclick="navigate('desafio')" id="nav-desafio">🏆 Modo Desafio</button>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <!-- ================= 0. HUB / INDEX ================= -->
+    <section id="view-hub" class="view-section active">
+        <div class="hub-hero">
+            <h2>Engenharia de Conhecimento e Raciocínio Simbólico</h2>
+            <p>Selecione um modo abaixo para navegar pelos conceitos teóricos, laboratório prático guiado com código completo ou o simulado avaliativo.</p>
+        </div>
+
+        <div class="cards-grid">
+            <!-- Card Aula -->
+            <div class="hub-card">
+                <div>
+                    <span class="card-icon">📖</span>
+                    <h3>Modo Aula</h3>
+                    <p>Slides interativos ajustados à tela para apresentação com passador de slides ou setas do teclado. Teoria completa, casos de uso reais, Forward e Backward Chaining.</p>
+                    <ul class="card-features">
+                        <li>13 slides explicativos sem rolagem</li>
+                        <li>Casos de uso reais (Medicina, Finanças, Indústria)</li>
+                        <li>Navegação por teclado e passador (clicker)</li>
+                    </ul>
+                </div>
+                <button class="btn-card" onclick="navigate('aula')">Iniciar Aula ➔</button>
+            </div>
+
+            <!-- Card Lab -->
+            <div class="hub-card">
+                <div>
+                    <span class="card-icon">🧪</span>
+                    <h3>Modo Laboratório</h3>
+                    <p>Guia prático auto-contido com código Python completo. Cada passo possui um desafio de validação que desbloqueia a resolução comentada.</p>
+                    <ul class="card-features">
+                        <li>Código template completo (Python)</li>
+                        <li>5 passos práticos com resolução desbloqueável</li>
+                        <li>Desafios de interatividade e explicação</li>
+                    </ul>
+                </div>
+                <button class="btn-card" onclick="navigate('lab')">Abrir Laboratório ➔</button>
+            </div>
+
+            <!-- Card Desafio -->
+            <div class="hub-card">
+                <div>
+                    <span class="card-icon">🏆</span>
+                    <h3>Modo Desafio</h3>
+                    <p>Simulado avaliativo com 10 questões no estilo ENADE para testar tomada de decisão arquitetural, algoritmos de inferência e raciocínio lógico.</p>
+                    <ul class="card-features">
+                        <li>10 questões de múltipla escolha</li>
+                        <li>Correção instantânea com percentual</li>
+                        <li>Gabarito comentado questão por questão</li>
+                    </ul>
+                </div>
+                <button class="btn-card" onclick="navigate('desafio')">Fazer Desafio ➔</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= 1. MODO AULA ================= -->
+    <section id="view-aula" class="view-section">
+        <div class="aula-container">
+            <div class="aula-header">
+                <div class="aula-title-group">
+                    <h2>Modo Aula: Slides Explicativos</h2>
+                    <span class="badge">Teoria & Conceitos</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <div class="shortcut-hint" title="Use as setas do teclado ou o passador de slides para navegar">
+                        <span>Passador / Teclado:</span>
+                        <span class="shortcut-key">◀</span>
+                        <span class="shortcut-key">▶</span>
+                        <span>ou</span>
+                        <span class="shortcut-key">Espaço</span>
+                    </div>
+                    <button class="btn-fullscreen" onclick="toggleFullscreen()" title="Alternar Tela Cheia">⛶ Tela Cheia</button>
+                    <button class="btn-nav" style="background:#64748b; padding: 0.45rem 0.85rem;" onclick="navigate('hub')">← Início</button>
+                </div>
+            </div>
+
+            <div class="slide-progress-bar">
+                <div class="slide-progress-fill" id="slide-progress"></div>
+            </div>
+
+            <div class="slide-viewport">
+                <div class="slide-header">
+                    <h3 id="slide-title">Título do Slide</h3>
+                    <div class="slide-subtitle" id="slide-subtitle">Subtítulo do Slide</div>
+                </div>
+                <div class="slide-body" id="slide-body">
+                    <!-- Conteúdo dinâmico do slide -->
+                </div>
+            </div>
+
+            <div class="slide-footer">
+                <button class="btn-nav" id="btn-prev-slide" onclick="changeSlide(-1)">◀ Anterior</button>
+                <span id="slide-counter" style="font-weight: 700; color: var(--text-muted); font-size: 0.95rem;">Slide 1 de 13</span>
+                <button class="btn-nav" id="btn-next-slide" onclick="changeSlide(1)">Próximo ▶</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= 2. MODO LABORATÓRIO ================= -->
+    <section id="view-lab" class="view-section">
+        <div class="content-card">
+            <div class="mode-header">
+                <div class="mode-title">
+                    <h2>Modo Laboratório: Implementação Prática</h2>
+                    <span class="badge">Hands-On em Python</span>
+                </div>
+                <button class="btn-nav" style="background:#64748b;" onclick="navigate('hub')">← Voltar ao Início</button>
+            </div>
+
+            <div class="lab-section">
+                <h3>🎯 Objetivo do Laboratório</h3>
+                <p>Nesta atividade prática, você irá analisar, executar e estender um protótipo de <strong>Motor de Inferência com Encadeamento para a Frente (Forward Chaining)</strong> em Python. Para apoiar o seu aprendizado, <strong>cada passo possui um desafio conceitual de validação: ao acertar a resposta, a resolução completa e comentada daquele passo será desbloqueada</strong>.</p>
+            </div>
+
+            <div class="lab-section">
+                <h3>🛠️ Código Base Inicial (Motor de Inferência em Python)</h3>
+                <p>Copie o código abaixo e execute em qualquer ambiente Python 3 (VS Code, Jupyter Notebook, IDLE ou terminal):</p>
+                
+                <div class="code-container">
+                    <div class="code-header">
+                        <span class="code-title">motor_especialista.py</span>
+                        <button class="btn-copy" onclick="copyCode('python-code')">📋 Copiar Código Base</button>
+                    </div>
+                    <pre><code id="python-code"># ============================================================
+# SISTEMA ESPECIALISTA: MOTOR DE INFERÊNCIA FORWARD CHAINING
+# ============================================================
+
+class BaseDeConhecimento:
+    def __init__(self):
+        # Memória de Trabalho: Armazena os fatos válidos na sessão
+        self.fatos = set()
+        # Regras de Produção: Lista de tuplas (conjunto_de_premissas, conclusao_ou_acao)
+        # Notação Lógica: Premissas (P1 ∧ P2 ∧ ...) ⟹ Consequente (Q)
+        self.regras = []
+
+    def adicionar_fato(self, fato: str):
+        """Insere um novo fato confirmado na memória de trabalho."""
+        self.fatos.add(fato)
+
+    def adicionar_regra(self, premissas: list, consequente: str):
+        """Define uma regra no formato: SE (p1 ∧ p2 ∧ ...) ⟹ ENTÃO (q)."""
+        self.regras.append((set(premissas), consequente))
+
+
+class MotorDeInferênciaForward:
+    def __init__(self, base_conhecimento: BaseDeConhecimento):
+        self.kb = base_conhecimento
+        self.historico_disparos = []
+
+    def executar(self):
+        """Ciclo Match-Resolve-Act até saturar todas as deduções possíveis."""
+        novos_fatos = True
+        regras_aplicadas = set()
+
+        print("=======================================================")
+        print("  INICIANDO PROCESSO DE INFERÊNCIA (FORWARD CHAINING)  ")
+        print("=======================================================")
+        
+        while novos_fatos:
+            novos_fatos = False
+            for idx, (premissas, consequente) in enumerate(self.kb.regras):
+                if idx in regras_aplicadas:
+                    continue
+                
+                # Match: Verifica se todas as premissas são um subconjunto dos fatos atuais
+                # Lógica: Premissas ⊆ Fatos ⟹ Dispara Regra (Modus Ponens)
+                if premissas.issubset(self.kb.fatos):
+                    premissas_str = " ∧ ".join(list(premissas))
+                    print(f"-> [DISPARO]: ({premissas_str}) ⟹ '{consequente}'")
+                    self.kb.adicionar_fato(consequente)
+                    self.historico_disparos.append((list(premissas), consequente))
+                    regras_aplicadas.add(idx)
+                    novos_fatos = True
+                    break # Resolve & Act: reinicia o ciclo com a memória de trabalho atualizada
+
+        print("\n-------------------------------------------------------")
+        print("  MEMÓRIA DE TRABALHO FINAL (FATOS CONHECIDOS/INFERIDOS) ")
+        print("-------------------------------------------------------")
+        for fato in sorted(self.kb.fatos):
+            print(f" • {fato}")
+        print("=======================================================\n")
+
+
+# ============================================================
+# SIMULAÇÃO: DIAGNÓSTICO E TRIAGEM DE SUPORTE DE REDE
+# ============================================================
+if __name__ == "__main__":
+    # 1. Instanciação da Base de Conhecimento
+    kb = BaseDeConhecimento()
+
+    # 2. Definição das Regras do Especialista de Suporte (Lógica de Produção)
+    # R1: sem_internet ∧ ping_roteador_ok ⟹ problema_provedor
+    kb.adicionar_regra(["sem_internet", "ping_roteador_ok"], "problema_provedor")
+    
+    # R2: sem_internet ∧ ping_roteador_falhou ⟹ problema_rede_local
+    kb.adicionar_regra(["sem_internet", "ping_roteador_falhou"], "problema_rede_local")
+    
+    # R3: problema_rede_local ∧ cabo_desconectado ⟹ triagem: Reconectar cabo de rede
+    kb.adicionar_regra(["problema_rede_local", "cabo_desconectado"], "triagem: Reconectar cabo de rede")
+    
+    # R4: problema_rede_local ∧ cabo_conectado ∧ wifi_desativado ⟹ triagem: Ativar Wi-Fi do dispositivo
+    kb.adicionar_regra(["problema_rede_local", "cabo_conectado", "wifi_desativado"], "triagem: Ativar Wi-Fi do dispositivo")
+    
+    # R5: problema_provedor ⟹ triagem: Reiniciar Modem e Contatar Operadora
+    kb.adicionar_regra(["problema_provedor"], "triagem: Reiniciar Modem e Contatar Operadora")
+
+    # 3. Fatos Iniciais (Dados observados pelo usuário)
+    kb.adicionar_fato("sem_internet")
+    kb.adicionar_fato("ping_roteador_falhou")
+    kb.adicionar_fato("cabo_desconectado")
+
+    # 4. Execução do Motor de Inferência
+    motor = MotorDeInferênciaForward(kb)
+    motor.executar()
+</code></pre>
+                </div>
+            </div>
+
+            <div class="lab-section">
+                <h3>📋 Roteiro de Atividades Práticas & Resoluções Desbloqueáveis</h3>
+                
+                <!-- PASSO 1 -->
+                <div class="step-card" id="step-card-1">
+                    <h4>Passo 1: Compreensão e Execução Inicial <span class="time-tag">15 minutos</span></h4>
+                    <p>Execute o script acima e observe o encadeamento das regras:</p>
+                    <ul>
+                        <li>O fato <code>"sem_internet"</code> ∧ <code>"ping_roteador_falhou"</code> ⟹ dispara a inferência do fato intermediário <code>"problema_rede_local"</code>.</li>
+                        <li>O novo fato intermediário junto com <code>"cabo_desconectado"</code> ⟹ dispara a regra terminal <code>"triagem: Reconectar cabo de rede"</code>.</li>
+                    </ul>
+
+                    <!-- Desafio de Desbloqueio Passo 1 -->
+                    <div class="checkpoint-box" id="cp-box-1">
+                        <div class="checkpoint-header">
+                            <span>🔒</span> Desafio de Validação (Passo 1)
+                        </div>
+                        <div class="checkpoint-q-text">
+                            No código base acima, ao iniciar com os fatos <code>sem_internet</code>, <code>ping_roteador_falhou</code> e <code>cabo_desconectado</code>, qual fato intermediário é deduzido no 1º ciclo de inferência antes de chegar na recomendação final?
+                        </div>
+                        <div class="checkpoint-options" id="cp-opts-1">
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_1" value="0"> <span>A) <code>problema_provedor</code></span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_1" value="1"> <span>B) <code>problema_rede_local</code></span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_1" value="2"> <span>C) <code>triagem: Ativar Wi-Fi do dispositivo</code></span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_1" value="3"> <span>D) <code>wifi_desativado</code></span></label>
+                        </div>
+                        <button class="btn-validate-step" onclick="validateStepCheckpoint(1)">🔓 Validar e Ver Resolução</button>
+                        <div class="checkpoint-feedback" id="cp-feedback-1"></div>
+                    </div>
+
+                    <!-- Resolução Passo 1 -->
+                    <div class="step-solution" id="solution-1">
+                        <div class="solution-badge-header">
+                            <span>🔓 Resolução e Análise do Passo 1</span>
+                            <button class="btn-copy" onclick="copyCode('code-sol-1')">📋 Copiar Rastreio</button>
+                        </div>
+                        <div class="solution-content">
+                            <p><strong>Explicação da Dinâmica de Inferência:</strong></p>
+                            <p>No início, a memória possui <span class="logic-formula">{ sem_internet, ping_roteador_falhou, cabo_desconectado }</span>. A regra R2 tem suas premissas satisfeitas e dispara primeiro, adicionando <span class="logic-formula">problema_rede_local</span>. No ciclo seguinte, R3 encontra todas as premissas satisfeitas e deduz a ação terminal.</p>
+                            <div class="code-container">
+                                <pre><code id="code-sol-1"># Rastreamento detalhado ciclo a ciclo (Modo Verbose)
+# Ciclo 1: Premissas satisfeitas: {'sem_internet', 'ping_roteador_falhou'} ⟹ Fato inserido: 'problema_rede_local'
+# Ciclo 2: Premissas satisfeitas: {'problema_rede_local', 'cabo_desconectado'} ⟹ Fato inserido: 'triagem: Reconectar cabo de rede'
+# Ciclo 3: Nenhuma nova regra dispara ⟹ Saturação alcançada com sucesso!</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASSO 2 -->
+                <div class="step-card" id="step-card-2">
+                    <h4>Passo 2: Criação de um Novo Domínio de Conhecimento <span class="time-tag">30 minutos</span></h4>
+                    <p>Substitua o domínio de redes por um novo domínio (ex: <strong>Triagem Médica de Manchester</strong>), criando pelo menos 5 regras encadeadas onde uma conclusão serve de premissa para a regra seguinte.</p>
+                    
+                    <!-- Desafio de Desbloqueio Passo 2 -->
+                    <div class="checkpoint-box" id="cp-box-2">
+                        <div class="checkpoint-header">
+                            <span>🔒</span> Desafio de Validação (Passo 2)
+                        </div>
+                        <div class="checkpoint-q-text">
+                            No Protocolo de Triagem de Manchester, qual é a estrutura lógica encadeada correta para classificar um paciente grave com <code>dor_severa ∧ hemorragia_ativa</code> em prioridade máxima (Vermelha) e deduzir a conduta hospitalar imediata?
+                        </div>
+                        <div class="checkpoint-options" id="cp-opts-2">
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_2" value="0"> <span>A) <code>SE (dor_severa ∧ hemorragia_ativa) ⟹ prioridade_vermelha</code> e <code>SE (prioridade_vermelha) ⟹ triagem: Sala de Choque / Atendimento Imediato (0 min)</code></span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_2" value="1"> <span>B) <code>SE (prioridade_vermelha) ⟹ dor_severa</code></span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_2" value="2"> <span>C) <code>SE (dor_severa ∨ hemorragia_ativa) ⟹ prioridade_verde</code></span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_2" value="3"> <span>D) <code>SE (hemorragia_ativa) ⟹ consulta_ambulatorial_agendada</code></span></label>
+                        </div>
+                        <button class="btn-validate-step" onclick="validateStepCheckpoint(2)">🔓 Validar e Ver Resolução</button>
+                        <div class="checkpoint-feedback" id="cp-feedback-2"></div>
+                    </div>
+
+                    <!-- Resolução Passo 2 -->
+                    <div class="step-solution" id="solution-2">
+                        <div class="solution-badge-header">
+                            <span>🔓 Resolução Completa do Passo 2 (Triagem Manchester em Python)</span>
+                            <button class="btn-copy" onclick="copyCode('code-sol-2')">📋 Copiar Código do Domínio</button>
+                        </div>
+                        <div class="solution-content">
+                            <p>Abaixo está a implementação completa com a Base de Conhecimento populada com as 5 cores do Protocolo de Manchester e suas ações encadeadas:</p>
+                            <div class="code-container">
+                                <pre><code id="code-sol-2"># ============================================================
+# RESOLUÇÃO DO PASSO 2: DOMÍNIO DE TRIAGEM MÉDICA DE MANCHESTER
+# ============================================================
+
+kb_manchester = BaseDeConhecimento()
+
+# 1. Regras de Classificação de Gravidade (Sintomas ⟹ Cor)
+kb_manchester.adicionar_regra(["dor_severa", "hemorragia_ativa"], "prioridade_vermelha")
+kb_manchester.adicionar_regra(["dor_severa", "febre_alta"], "prioridade_laranja")
+kb_manchester.adicionar_regra(["dor_moderada", "febre_moderada"], "prioridade_amarela")
+kb_manchester.adicionar_regra(["dor_leve", "sem_febre"], "prioridade_verde")
+kb_manchester.adicionar_regra(["sem_dor", "sem_febre", "caso_cronico"], "prioridade_azul")
+
+# 2. Regras de Encaminhamento Clínico (Cor ⟹ Ação / Tempo Limite)
+kb_manchester.adicionar_regra(["prioridade_vermelha"], "triagem: Emergência - Atendimento Imediato (0 min)")
+kb_manchester.adicionar_regra(["prioridade_laranja"], "triagem: Muito Urgente - Atendimento em até 10 min")
+kb_manchester.adicionar_regra(["prioridade_amarela"], "triagem: Urgente - Atendimento em até 60 min")
+kb_manchester.adicionar_regra(["prioridade_verde"], "triagem: Pouco Urgente - Atendimento em até 120 min")
+kb_manchester.adicionar_regra(["prioridade_azul"], "triagem: Não Urgente - Atendimento em até 240 min")
+
+# Teste com paciente crítico:
+kb_manchester.adicionar_fato("dor_severa")
+kb_manchester.adicionar_fato("hemorragia_ativa")
+
+motor_medico = MotorDeInferênciaForward(kb_manchester)
+motor_medico.executar()</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASSO 3 -->
+                <div class="step-card" id="step-card-3">
+                    <h4>Passo 3: Interface Interativa com o Usuário <span class="time-tag">40 minutos</span></h4>
+                    <p>Modifique o sistema para que ele não inicie com fatos previamente fixos no código. Quando uma regra necessitar de uma condição observável que não está na memória, o sistema deve solicitar interativamente via <code>input()</code>: <em>"O fato [X] é verdadeiro? (s/n)"</em>.</p>
+                    
+                    <!-- Desafio de Desbloqueio Passo 3 -->
+                    <div class="checkpoint-box" id="cp-box-3">
+                        <div class="checkpoint-header">
+                            <span>🔒</span> Desafio de Validação (Passo 3)
+                        </div>
+                        <div class="checkpoint-q-text">
+                            Para evitar que o sistema faça perguntas sobre fatos que poderiam ser deduzidos por regras internas (ex: perguntar diretamente "O paciente tem prioridade vermelha?"), qual critério o motor interativo deve adotar antes de chamar a função <code>input()</code>?
+                        </div>
+                        <div class="checkpoint-options" id="cp-opts-3">
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_3" value="0"> <span>A) Deve chamar <code>input()</code> para absolutamente todas as palavras do vocabulário logo no início.</span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_3" value="1"> <span>B) Deve perguntar apenas sobre fatos primitivos que NÃO aparecem no consequente (conclusão) de nenhuma regra da KB.</span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_3" value="2"> <span>C) Deve perguntar apenas quando o programa apresentar erro de sintaxe.</span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_3" value="3"> <span>D) O motor não deve armazenar a resposta para perguntar várias vezes a mesma coisa.</span></label>
+                        </div>
+                        <button class="btn-validate-step" onclick="validateStepCheckpoint(3)">🔓 Validar e Ver Resolução</button>
+                        <div class="checkpoint-feedback" id="cp-feedback-3"></div>
+                    </div>
+
+                    <!-- Resolução Passo 3 -->
+                    <div class="step-solution" id="solution-3">
+                        <div class="solution-badge-header">
+                            <span>🔓 Resolução Completa do Passo 3 (Motor Interativo com input())</span>
+                            <button class="btn-copy" onclick="copyCode('code-sol-3')">📋 Copiar Motor Interativo</button>
+                        </div>
+                        <div class="solution-content">
+                            <p>Código da classe <code>MotorInterativoForward</code> que detecta premissas primitivas ausentes e coleta dados dinamicamente do usuário:</p>
+                            <div class="code-container">
+                                <pre><code id="code-sol-3"># ============================================================
+# RESOLUÇÃO DO PASSO 3: MOTOR DE INFERÊNCIA INTERATIVO
+# ============================================================
+
+class MotorInterativoForward:
+    def __init__(self, base_conhecimento: BaseDeConhecimento):
+        self.kb = base_conhecimento
+        self.perguntados = set()
+
+    def _obter_fatos_inferiveis(self):
+        """Identifica todos os fatos que podem ser deduzidos como conclusões de regras."""
+        return {consequente for _, consequente in self.kb.regras}
+
+    def interagir_e_executar(self):
+        conclusoes_possiveis = self._obter_fatos_inferiveis()
+        novos_fatos = True
+        regras_aplicadas = set()
+
+        print("\n--- INICIANDO DIAGNÓSTICO INTERATIVO COM O USUÁRIO ---")
+
+        while novos_fatos:
+            novos_fatos = False
+            for idx, (premissas, consequente) in enumerate(self.kb.regras):
+                if idx in regras_aplicadas:
+                    continue
+
+                # Pergunta ao usuário sobre premissas primitivas que ainda não conhecemos
+                for premissa in premissas:
+                    if premissa not in self.kb.fatos and premissa not in self.perguntados:
+                        # Se não pode ser deduzido por outra regra, é um fato observável primitivo
+                        if premissa not in conclusoes_possiveis:
+                            resp = input(f"-> O fato/sintoma '{premissa}' está presente? (s/n): ").strip().lower()
+                            self.perguntados.add(premissa)
+                            if resp == 's' or resp == 'sim':
+                                self.kb.adicionar_fato(premissa)
+
+                # Verifica se a regra agora dá Match
+                if premissas.issubset(self.kb.fatos):
+                    print(f"[REGRA DISPARADA]: SE {' ∧ '.join(premissas)} ⟹ '{consequente}'")
+                    self.kb.adicionar_fato(consequente)
+                    regras_aplicadas.add(idx)
+                    novos_fatos = True
+                    break
+
+        print("\n--- DIAGNÓSTICO FINAL CONCLUÍDO ---")
+        for fato in sorted(self.kb.fatos):
+            if fato.startswith("triagem:"):
+                print(f"🎯 DECISÃO FINAL: {fato}")</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASSO 4 -->
+                <div class="step-card" id="step-card-4">
+                    <h4>Passo 4: Implementação do Módulo de Explicação ("Como?") <span class="time-tag">35 minutos</span></h4>
+                    <p>Adicione transparência implementando o método <code>explicar_conclusao(fato_alvo)</code>. Ele deve exibir a árvore causal exata de regras disparadas que levaram a determinada triagem.</p>
+                    
+                    <!-- Desafio de Desbloqueio Passo 4 -->
+                    <div class="checkpoint-box" id="cp-box-4">
+                        <div class="checkpoint-header">
+                            <span>🔒</span> Desafio de Validação (Passo 4)
+                        </div>
+                        <div class="checkpoint-q-text">
+                            Qual estrutura de dados é mais apropriada para armazenar o histórico causal no motor de modo que a função <code>explicar_conclusao(fato)</code> consiga reconstruir a árvore de inferência recursivamente?
+                        </div>
+                        <div class="checkpoint-options" id="cp-opts-4">
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_4" value="0"> <span>A) Uma variável booleana simples <code>status = True</code>.</span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_4" value="1"> <span>B) Um dicionário mapeando cada fato deduzido para as premissas que o geraram: <code>{ consequente: premissas_utilizadas }</code>.</span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_4" value="2"> <span>C) Um vetor contendo apenas números aleatórios gerados pelo processador.</span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_4" value="3"> <span>D) Apagar a memória de trabalho a cada disparo para liberar memória RAM.</span></label>
+                        </div>
+                        <button class="btn-validate-step" onclick="validateStepCheckpoint(4)">🔓 Validar e Ver Resolução</button>
+                        <div class="checkpoint-feedback" id="cp-feedback-4"></div>
+                    </div>
+
+                    <!-- Resolução Passo 4 -->
+                    <div class="step-solution" id="solution-4">
+                        <div class="solution-badge-header">
+                            <span>🔓 Resolução Completa do Passo 4 (Módulo de Explicação "Como?")</span>
+                            <button class="btn-copy" onclick="copyCode('code-sol-4')">📋 Copiar Módulo de Explicação</button>
+                        </div>
+                        <div class="solution-content">
+                            <p>Código com a função recursiva de rastreamento causal e formatação em árvore hierárquica:</p>
+                            <div class="code-container">
+                                <pre><code id="code-sol-4"># ============================================================
+# RESOLUÇÃO DO PASSO 4: MÓDULO DE EXPLICAÇÃO ("COMO?")
+# ============================================================
+
+class MotorComExplicacao(MotorDeInferênciaForward):
+    def __init__(self, base_conhecimento: BaseDeConhecimento):
+        super().__init__(base_conhecimento)
+        # Mapeia: fato_gerado -> conjunto_de_premissas_que_o_geraram
+        self.grafo_justificativas = {}
+
+    def executar(self):
+        novos_fatos = True
+        regras_aplicadas = set()
+
+        while novos_fatos:
+            novos_fatos = False
+            for idx, (premissas, consequente) in enumerate(self.kb.regras):
+                if idx in regras_aplicadas:
+                    continue
+                if premissas.issubset(self.kb.fatos):
+                    self.kb.adicionar_fato(consequente)
+                    self.grafo_justificativas[consequente] = list(premissas)
+                    regras_aplicadas.add(idx)
+                    novos_fatos = True
+                    break
+
+    def explicar_como(self, fato_alvo: str, nivel: int = 0):
+        """Reconstrói recursivamente a árvore lógica que justificou o fato."""
+        ident = "  " * nivel
+        if fato_alvo in self.grafo_justificativas:
+            premissas = self.grafo_justificativas[fato_alvo]
+            print(f"{ident}└─ '{fato_alvo}' foi DEDUZIDO pela regra: ({' ∧ '.join(premissas)} ⟹ '{fato_alvo}')")
+            for p in premissas:
+                self.explicar_como(p, nivel + 1)
+        else:
+            print(f"{ident}├─ '{fato_alvo}' foi informado como FATO INICIAL ou confirmado pelo usuário.")
+
+# Demonstração:
+# motor.explicar_como("triagem: Reconectar cabo de rede")</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASSO 5 -->
+                <div class="step-card" id="step-card-5">
+                    <h4>Passo 5: Desafio Avançado - Backward Chaining <span class="time-tag">Desafio Opcional</span></h4>
+                    <p>Refatore o motor principal para operar em <strong>Backward Chaining (Encadeamento para Trás)</strong>. O sistema deve receber uma hipótese alvo e verificar recursivamente se ela é suportada pelas regras e fatos da base.</p>
+                    
+                    <!-- Desafio de Desbloqueio Passo 5 -->
+                    <div class="checkpoint-box" id="cp-box-5">
+                        <div class="checkpoint-header">
+                            <span>🔒</span> Desafio de Validação (Passo 5)
+                        </div>
+                        <div class="checkpoint-q-text">
+                            Qual é a principal diferença algorítmica entre o método de execução do <em>Forward Chaining</em> e o método <code>provar_meta(meta)</code> do <em>Backward Chaining</em>?
+                        </div>
+                        <div class="checkpoint-options" id="cp-opts-5">
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_5" value="0"> <span>A) O Forward Chaining roda em loop iterativo gerando fatos, enquanto o Backward Chaining é tipicamente recursivo, partindo da hipótese e empilhando submetas a serem provadas.</span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_5" value="1"> <span>B) O Backward Chaining não utiliza regras de produção SE-ENTÃO.</span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_5" value="2"> <span>C) O Forward Chaining só funciona se a base de fatos estiver totalmente vazia.</span></label>
+                            <label class="checkpoint-opt-label"><input type="radio" name="cp_5" value="3"> <span>D) O Backward Chaining apaga as regras da base após cada pergunta ao usuário.</span></label>
+                        </div>
+                        <button class="btn-validate-step" onclick="validateStepCheckpoint(5)">🔓 Validar e Ver Resolução</button>
+                        <div class="checkpoint-feedback" id="cp-feedback-5"></div>
+                    </div>
+
+                    <!-- Resolução Passo 5 -->
+                    <div class="step-solution" id="solution-5">
+                        <div class="solution-badge-header">
+                            <span>🔓 Resolução Completa do Passo 5 (Motor Backward Chaining Recursivo)</span>
+                            <button class="btn-copy" onclick="copyCode('code-sol-5')">📋 Copiar Backward Chaining</button>
+                        </div>
+                        <div class="solution-content">
+                            <p>Implementação completa do algoritmo de Backward Chaining guiado por hipóteses com busca recursiva:</p>
+                            <div class="code-container">
+                                <pre><code id="code-sol-5"># ============================================================
+# RESOLUÇÃO DO PASSO 5: MOTOR BACKWARD CHAINING RECURSIVO
+# ============================================================
+
+class MotorDeInferênciaBackward:
+    def __init__(self, base_conhecimento: BaseDeConhecimento):
+        self.kb = base_conhecimento
+        self.perguntados = set()
+
+    def provar_meta(self, meta: str, nivel: int = 0) -> bool:
+        """Tenta provar recursivamente uma hipótese/meta."""
+        ident = "  " * nivel
+        print(f"{ident}🔍 Investigando meta: '{meta}'...")
+
+        # 1. Caso Base: O fato já está confirmado na memória de trabalho
+        if meta in self.kb.fatos:
+            print(f"{ident}✅ Fato '{meta}' já é conhecido e confirmado na memória.")
+            return True
+
+        # 2. Busca regras que tenham a meta no consequente (P ⟹ meta)
+        regras_candidatas = [r for r in self.kb.regras if r[1] == meta]
+
+        for premissas, _ in regras_candidatas:
+            print(f"{ident}→ Avaliando regra: {' ∧ '.join(premissas)} ⟹ '{meta}'")
+            # Todas as premissas da regra precisam ser provadas (recursão)
+            todas_premissas_ok = True
+            for p in premissas:
+                if not self.provar_meta(p, nivel + 1):
+                    todas_premissas_ok = False
+                    break # Se uma premissa falhar, descarta essa regra e tenta a próxima
+
+            if todas_premissas_ok:
+                print(f"{ident}🎉 Meta '{meta}' foi PROVADA com sucesso!")
+                self.kb.adicionar_fato(meta)
+                return True
+
+        # 3. Se não há regras para provar a meta, pergunta diretamente ao usuário (fato primitivo)
+        if not regras_candidatas and meta not in self.perguntados:
+            resp = input(f"\n[PERGUNTA]: O fato '{meta}' é verdadeiro? (s/n): ").strip().lower()
+            self.perguntados.add(meta)
+            if resp == 's' or resp == 'sim':
+                self.kb.adicionar_fato(meta)
+                return True
+
+        print(f"{ident}❌ Não foi possível provar a meta: '{meta}'.")
+        return False
+
+# ==========================================
+# TESTE DO BACKWARD CHAINING
+# ==========================================
+if __name__ == "__main__":
+    kb = BaseDeConhecimento()
+    kb.adicionar_regra(["sem_internet", "ping_roteador_ok"], "problema_provedor")
+    kb.adicionar_regra(["problema_provedor"], "triagem: Reiniciar Modem e Contatar Operadora")
+
+    motor_backward = MotorDeInferênciaBackward(kb)
+    hipotese = "triagem: Reiniciar Modem e Contatar Operadora"
+    sucesso = motor_backward.provar_meta(hipotese)
+    print(f"\nResultado da Investigação: {hipotese} ⟹ {'CONFIRMADO' if sucesso else 'DESCARTADO'}")</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= 3. MODO DESAFIO ================= -->
+    <section id="view-desafio" class="view-section">
+        <div class="content-card">
+            <div class="mode-header">
+                <div class="mode-title">
+                    <h2>Modo Desafio: Simulado ENADE</h2>
+                    <span class="badge">10 Questões Avaliativas</span>
+                </div>
+                <button class="btn-nav" style="background:#64748b;" onclick="navigate('hub')">← Voltar ao Início</button>
+            </div>
+
+            <div class="quiz-intro">
+                <h3>Instruções do Simulado</h3>
+                <p>Este teste contém 10 questões de múltipla escolha formuladas nos padrões conceituais e arquiteturais do ENADE e concursos de IA. Selecione uma resposta para cada item e clique em <strong>"Finalizar e Ver Resultado"</strong> ao final da página para obter sua nota e o gabarito comentado.</p>
+            </div>
+
+            <div id="quiz-questions-container">
+                <!-- Injetado via JavaScript -->
+            </div>
+
+            <button class="btn-nav" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; background: var(--accent);" onclick="submitQuiz()">
+                ✅ Finalizar e Ver Resultado
+            </button>
+
+            <div class="result-box" id="result-box">
+                <div class="score-circle" id="score-circle">0/10</div>
+                <h3 id="result-title" style="font-size: 1.5rem; margin-bottom: 0.4rem;">Resultado</h3>
+                <p id="result-desc" style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1.25rem;"></p>
+                <button class="btn-nav" style="margin: 0 auto;" onclick="resetQuiz()">🔄 Refazer Desafio</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <p>Disciplina de Inteligência Artificial • Sistemas Baseados em Conhecimento</p>
+</footer>
+
+<script>
+    // ================= ROUTING / NAVIGATION =================
+    let currentView = 'hub';
+
+    function navigate(viewName) {
+        currentView = viewName;
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+
+        const targetSection = document.getElementById('view-' + viewName);
+        const targetBtn = document.getElementById('nav-' + viewName);
+
+        if (targetSection) targetSection.classList.add('active');
+        if (targetBtn) targetBtn.classList.add('active');
+
+        // Controla layout de tela cheia sem rolagem vertical para o Modo Aula
+        if (viewName === 'aula') {
+            document.body.classList.add('modo-aula-active');
+            renderSlide();
+        } else {
+            document.body.classList.remove('modo-aula-active');
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ================= SLIDES DATA COM EXPRESSÕES E SÍMBOLOS LÓGICOS REAIS =================
+    const slidesData = [
+        {
+            title: "Sistemas Especialistas e Motores de Inferência",
+            subtitle: "1. Introdução e Contexto Histórico",
+            body: `
+                <p>Os <strong>Sistemas Especialistas (SE)</strong> são marcos fundamentais da Inteligência Artificial Simbólica (GOFAI).</p>
+                <div class="concept-box">
+                    <strong>Definição:</strong> Programas computacionais projetados para emular a capacidade de raciocínio lógico e tomada de decisão de um especialista humano em domínios específicos.
+                </div>
+                <ul>
+                    <li><strong>Marcos Históricos:</strong> DENDRAL (análise química nos anos 60) e MYCIN (diagnóstico de infecções bacterianas nos anos 70).</li>
+                    <li><strong>Relevância na Indústria Atual:</strong> Motores de regras como Drools, CLIPS, Jess e Camunda.</li>
+                </ul>
+            `
+        },
+        {
+            title: "Objetivos de Aprendizagem",
+            subtitle: "2. Competências Esperadas",
+            body: `
+                <p>Ao final desta aula, você será capaz de:</p>
+                <ul>
+                    <li><strong>Compreender a Arquitetura:</strong> Identificar a separação estrita entre conhecimento formalizado e algoritmo de busca.</li>
+                    <li><strong>Comparar Inferências:</strong> Diferenciar <em>Forward Chaining</em> (Dados ⟹ Metas) e <em>Backward Chaining</em> (Hipótese ⟹ Premissas).</li>
+                    <li><strong>Tomar Decisões Arquiteturais:</strong> Selecionar a melhor estratégia lógica para triagem e diagnóstico.</li>
+                    <li><strong>Implementar:</strong> Construir motores de inferência funcionais em Python com regras de produção.</li>
+                </ul>
+            `
+        },
+        {
+            title: "A Arquitetura de um Sistema Especialista",
+            subtitle: "3. Princípio do Desacoplamento Lógico",
+            body: `
+                <p>O princípio basilar é o <strong>Desacoplamento</strong> entre o conhecimento do domínio e o motor de inferência:</p>
+                <div class="concept-box" style="text-align: center; font-weight: bold; line-height: 1.6;">
+                    [ Usuário / Especialista ] ⟷ [ Interface / Módulo de Explicação ]<br>
+                    ↕<br>
+                    [ Motor de Inferência (Algoritmo Genérico de Raciocínio) ]<br>
+                    ↕<br>
+                    [ Base de Conhecimento (Regras: P ⟹ Q) ] + [ Memória de Trabalho (Fatos da Sessão) ]
+                </div>
+                <p>Permite expandir a base de regras sem alterar uma única linha de código do motor de inferência.</p>
+            `
+        },
+        {
+            title: "Componentes Centrais da Arquitetura",
+            subtitle: "4. Base de Conhecimento vs. Memória vs. Motor",
+            body: `
+                <ul>
+                    <li><strong>Base de Conhecimento (KB):</strong> Armazena fatos estáticos e regras de produção no formato formal: <span class="logic-formula">SE (P₁ ∧ P₂ ∧ ... ∧ Pₙ) ⟹ ENTÃO (Q)</span>.</li>
+                    <li><strong>Memória de Trabalho (Working Memory):</strong> Mantém o conjunto de fatos válidos na sessão atual: <span class="logic-formula">Fatos = { f₁, f₂, ... }</span>.</li>
+                    <li><strong>Motor de Inferência (Inference Engine):</strong> Mecanismo independente que aplica operações de dedução lógica (ex: <em>Modus Ponens</em>).</li>
+                    <li><strong>Módulo de Explicação:</strong> Justifica o raciocínio: "Por quê?" (hipótese atual) e "Como?" (cadeia de regras disparadas).</li>
+                </ul>
+            `
+        },
+        {
+            title: "Encadeamento para a Frente (Forward Chaining)",
+            subtitle: "5. Abordagem Guiada por Dados (Data-Driven)",
+            body: `
+                <p>O raciocínio parte dos <strong>fatos conhecidos</strong> e avança deduzindo novas conclusões:</p>
+                <div class="concept-box">
+                    <strong>Direção:</strong> Fatos Conhecidos ⟶ Disparo de Regras (Match) ⟶ Dedução de Novos Fatos / Ações.
+                </div>
+                <p><strong>O Ciclo Match-Resolve-Act:</strong></p>
+                <ol>
+                    <li><strong>Match:</strong> Identifica regras onde <span class="logic-formula">Premissas ⊆ Memória_de_Trabalho</span>.</li>
+                    <li><strong>Resolve:</strong> Aplica heurísticas de desempate caso múltiplas regras possam disparar simultaneamente.</li>
+                    <li><strong>Act:</strong> Dispara o consequente <span class="logic-formula">Memória_de_Trabalho ← Memória_de_Trabalho ∪ { Q }</span>.</li>
+                </ol>
+            `
+        },
+        {
+            title: "Forward Chaining: Rastreamento Prático",
+            subtitle: "6. Execução Passo a Passo em Cadeia",
+            body: `
+                <p>Considere a Base de Conhecimento: <br>
+                • <strong>R₁:</strong> <span class="logic-formula">sem_internet ∧ ping_falhou ⟹ problema_rede_local</span><br>
+                • <strong>R₂:</strong> <span class="logic-formula">problema_rede_local ∧ cabo_desconectado ⟹ acao_reconectar_cabo</span></p>
+                <div class="concept-box">
+                    <strong>1. Fatos Iniciais:</strong> { <code>sem_internet</code>, <code>ping_falhou</code>, <code>cabo_desconectado</code> }<br>
+                    <strong>2. Ciclo 1:</strong> R₁ dá Match ⟶ Dispara R₁ ⟶ Adiciona <code>problema_rede_local</code>.<br>
+                    <strong>3. Ciclo 2:</strong> R₂ dá Match ⟶ Dispara R₂ ⟶ Adiciona <code>acao_reconectar_cabo</code>.<br>
+                    <strong>4. Ciclo 3:</strong> Nenhuma nova regra pode disparar ⟶ Fim da inferência.
+                </div>
+            `
+        },
+        {
+            title: "Encadeamento para Trás (Backward Chaining)",
+            subtitle: "7. Abordagem Guiada por Metas (Goal-Driven)",
+            body: `
+                <p>O raciocínio opera de trás para frente: parte-se de uma <strong>hipótese/meta (G)</strong> e busca-se prová-la.</p>
+                <div class="concept-box">
+                    <strong>Direção:</strong> Meta (G) ⟶ Buscar Regras com G no Consequente ⟶ Provar Submetas recursivamente.
+                </div>
+                <ul>
+                    <li>Busca regras da forma: <span class="logic-formula">P₁ ∧ P₂ ∧ ... ⟹ G</span>.</li>
+                    <li>As premissas <span class="logic-formula">{ P₁, P₂, ... }</span> tornam-se novas submetas a serem validadas.</li>
+                    <li>Se faltarem fatos, o sistema formula perguntas direcionadas ao usuário, evitando coleta de dados irrelevantes.</li>
+                </ul>
+            `
+        },
+        {
+            title: "Backward Chaining: Exemplo de Diagnóstico",
+            subtitle: "8. Investigação Hipotética Focada",
+            body: `
+                <p>Cenário: Avaliar a hipótese alvo <span class="logic-formula">Diagnóstico(Gripe)</span>:</p>
+                <div class="concept-box">
+                    <strong>Regra Avaliada:</strong> <span class="logic-formula">febre ∧ tosse ∧ dor_garganta ⟹ Diagnóstico(Gripe)</span><br>
+                    <strong>Submetas geradas:</strong> 1. febre? | 2. tosse? | 3. dor_garganta?<br>
+                    <strong>Comportamento:</strong> O sistema pergunta diretamente: <em>"O paciente tem febre?"</em>.<br>
+                    Se a resposta for <strong>Falso (¬febre)</strong>, a regra é imediatamente descartada sem perguntar sobre tosse ou garganta!
+                </div>
+            `
+        },
+        {
+            title: "Quadro Comparativo: Forward vs. Backward",
+            subtitle: "9. Guia de Decisão Arquitetural",
+            body: `
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Critério</th>
+                            <th>Forward Chaining</th>
+                            <th>Backward Chaining</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Orientação Lógica</strong></td>
+                            <td>Guiado por Dados (Data-Driven)</td>
+                            <td>Guiado por Metas (Goal-Driven)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Fluxo de Dedução</strong></td>
+                            <td>Fatos ⟶ Conclusões</td>
+                            <td>Hipótese ⟶ Fatos de Suporte</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Comportamento</strong></td>
+                            <td>Reativo e Exploratório</td>
+                            <td>Investigativo e Hipotético</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Aplicação Típica</strong></td>
+                            <td>Telemetria, sensores, triagem aberta</td>
+                            <td>Diagnóstico médico, auditoria, depuração</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `
+        },
+        {
+            title: "Módulo de Explicação",
+            subtitle: "10. Transparência e Auditabilidade Lógica",
+            body: `
+                <p>Diferente de redes neurais "caixa-preta", os Sistemas Especialistas são nativamente explicáveis:</p>
+                <div class="concept-box">
+                    <strong>1. Explicar o "Por quê?" (Why?):</strong><br>
+                    Durante a consulta: justifica a razão de uma pergunta mostrando a hipótese e a regra em avaliação: <span class="logic-formula">SE (P ∧ Q) ⟹ Meta_Atual</span>.
+                </div>
+                <div class="concept-box">
+                    <strong>2. Explicar o "Como?" (How?):</strong><br>
+                    Após a conclusão: apresenta o encadeamento causal completo da árvore de inferência: <span class="logic-formula">Fato_A ∧ Fato_B ⟹ Fato_C ⟹ Decisão_Final</span>.
+                </div>
+            `
+        },
+        {
+            title: "Vantagens e Limitações dos Sistemas Especialistas",
+            subtitle: "11. Análise Comparativa & Exemplos Práticos",
+            body: `
+                <div class="comparison-grid">
+                    <!-- Coluna Vantagens -->
+                    <div class="comparison-col col-vent">
+                        <div class="comparison-title" style="color: var(--success);">
+                            <span>✓</span> Vantagens Estratégicas
+                        </div>
+                        <div class="item-block">
+                            <span class="item-name">1. Explicabilidade e Auditoria Total (White-Box)</span>
+                            Todo passo é rastreável via árvore lógica de premissas.<br>
+                            <span class="item-example"><strong>Exemplo:</strong> Empréstimo negado por <code>(Score &lt; 600 ∧ Renda &lt; 3x)</code> com justificativa legal clara (LGPD/BACEN).</span>
+                        </div>
+                        <div class="item-block">
+                            <span class="item-name">2. Modularidade e Facilidade de Atualização</span>
+                            Novas regras são inseridas na KB sem alterar o motor ou recompilar.<br>
+                            <span class="item-example"><strong>Exemplo:</strong> Nova alíquota fiscal ou protocolo médico atualizado com a adição de apenas 1 regra isolada.</span>
+                        </div>
+                        <div class="item-block">
+                            <span class="item-name">3. Preservação do Conhecimento Humano</span>
+                            Institucionaliza o conhecimento empírico de especialistas raros.<br>
+                            <span class="item-example"><strong>Exemplo:</strong> Regras de diagnóstico de falhas de um engenheiro de turbinas com 40 anos de carreira antes de se aposentar.</span>
+                        </div>
+                    </div>
+
+                    <!-- Coluna Desvantagens -->
+                    <div class="comparison-col col-desvant">
+                        <div class="comparison-title" style="color: var(--danger);">
+                            <span>✗</span> Limitações e Desafios
+                        </div>
+                        <div class="item-block">
+                            <span class="item-name">1. Gargalo de Aquisição de Conhecimento</span>
+                            Dificuldade e alto custo em extrair e formalizar o saber tácito humano.<br>
+                            <span class="item-example"><strong>Exemplo:</strong> Meses de entrevistas com médicos especialistas para traduzir intuições clínicas em regras booleanas consistentes.</span>
+                        </div>
+                        <div class="item-block">
+                            <span class="item-name">2. Fragilidade Fora do Escopo (Brittleness)</span>
+                            Incapacidade de generalizar ou raciocinar sobre fatos não cadastrados.<br>
+                            <span class="item-example"><strong>Exemplo:</strong> Carro autônomo baseado em regras que trava ao encontrar um obstáculo novo nunca previsto nas condições <code>SE</code>.</span>
+                        </div>
+                        <div class="item-block">
+                            <span class="item-name">3. Inadequação para Dados Perceptuais Brutos</span>
+                            Regras simbólicas falham em dados ruidosos, pixels e áudio contínuo.<br>
+                            <span class="item-example"><strong>Exemplo:</strong> Impossível criar regras manuais como <code>SE pixel[10,20]==azul ⟹ É Gato</code> (onde Redes Neurais/DL dominam).</span>
+                        </div>
+                    </div>
+                </div>
+            `
+        },
+        {
+            title: "Casos de Uso Reais na Indústria e Sociedade",
+            subtitle: "12. Onde os Sistemas Especialistas são Essenciais",
+            body: `
+                <div class="usecases-grid">
+                    <!-- Caso 1: Medicina -->
+                    <div class="usecase-card">
+                        <div class="usecase-header">
+                            <span>🩺</span> Triagem Médica e Apoio Clínico (CDSS)
+                        </div>
+                        <div class="usecase-desc">
+                            Alerta de interações medicamentosas perigosas e triagem hospitalar (Protocolo de Manchester).
+                        </div>
+                        <div class="usecase-rule">
+                            SE Prescrito(Varfarina) ∧ Prescrito(Aspirina) ⟹ Alerta(Risco_Hemorragia)
+                        </div>
+                    </div>
+
+                    <!-- Caso 2: Finanças -->
+                    <div class="usecase-card">
+                        <div class="usecase-header">
+                            <span>💳</span> Concessão de Crédito e Prevenção à Fraude
+                        </div>
+                        <div class="usecase-desc">
+                            Validação regulatória instantânea e bloqueio preventivo de cartões em operações anômalas.
+                        </div>
+                        <div class="usecase-rule">
+                            SE Transacao(Exterior) ∧ ¬HistoricoViagem ∧ Valor &gt; 5000 ⟹ Bloqueio_Cartao
+                        </div>
+                    </div>
+
+                    <!-- Caso 3: Indústria e Aviação -->
+                    <div class="usecase-card">
+                        <div class="usecase-header">
+                            <span>✈️</span> Diagnóstico Industrial e Aeroespacial
+                        </div>
+                        <div class="usecase-desc">
+                            Manutenção preditiva de turbinas e checklists críticos com auditoria regulatória obrigatória.
+                        </div>
+                        <div class="usecase-rule">
+                            SE Vibracao &gt; 80Hz ∧ Temp_Oleo &gt; 110°C ⟹ Falha_Iminente(Rolamento)
+                        </div>
+                    </div>
+
+                    <!-- Caso 4: Direito e Tributação -->
+                    <div class="usecase-card">
+                        <div class="usecase-header">
+                            <span>⚖️</span> Auditoria Fiscal e Conformidade Jurídica
+                        </div>
+                        <div class="usecase-desc">
+                            Cálculo de alíquotas de importação (Receita Federal) e conformidade com normas trabalhistas/LGPD.
+                        </div>
+                        <div class="usecase-rule">
+                            SE NCM_Eletronico ∧ Origem_China ∧ Valor &gt; $50 ⟹ Aplicar_Imposto(60%)
+                        </div>
+                    </div>
+                </div>
+            `
+        },
+        {
+            title: "Transição para a Prática",
+            subtitle: "13. Rumo ao Laboratório",
+            body: `
+                <p>Com a fundamentação teórica consolidada, vamos para a implementação prática em Python:</p>
+                <div class="concept-box">
+                    <strong>Atividades no Laboratório:</strong>
+                    <ol>
+                        <li>Executar o protótipo com <em>Forward Chaining</em>.</li>
+                        <li>Implementar domínio de triagem médica ou recomendação de hardware.</li>
+                        <li>Criar interface interativa via <code>input()</code> e Módulo de Explicação.</li>
+                    </ol>
+                </div>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button class="btn-card" style="margin: 0 auto; display: inline-flex;" onclick="navigate('lab')">Ir para o Modo Laboratório 🧪</button>
+                </div>
+            `
+        }
+    ];
+
+    let currentSlide = 0;
+
+    function renderSlide() {
+        const slide = slidesData[currentSlide];
+        document.getElementById('slide-title').innerText = slide.title;
+        document.getElementById('slide-subtitle').innerText = slide.subtitle;
+        document.getElementById('slide-body').innerHTML = slide.body;
+
+        document.getElementById('slide-counter').innerText = `Slide ${currentSlide + 1} de ${slidesData.length}`;
+        document.getElementById('btn-prev-slide').disabled = currentSlide === 0;
+        document.getElementById('btn-next-slide').disabled = currentSlide === slidesData.length - 1;
+
+        const progressPercent = ((currentSlide + 1) / slidesData.length) * 100;
+        document.getElementById('slide-progress').style.width = `${progressPercent}%`;
+    }
+
+    function changeSlide(direction) {
+        const nextIdx = currentSlide + direction;
+        if (nextIdx >= 0 && nextIdx < slidesData.length) {
+            currentSlide = nextIdx;
+            renderSlide();
+        }
+    }
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                alert(`Erro ao ativar tela cheia: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+
+    // ================= CONTROLE DE TECLADO E PASSADOR DE SLIDES (CLICKER) =================
+    window.addEventListener('keydown', (e) => {
+        // Apenas responde a teclas de apresentação se o Modo Aula estiver ativo
+        if (currentView !== 'aula') return;
+
+        // Teclas para AVANÇAR: Seta Direita, PageDown (Passador), Barra de Espaço, Enter, Seta Baixo
+        if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            changeSlide(1);
+        }
+        // Teclas para VOLTAR: Seta Esquerda, PageUp (Passador), Backspace, Seta Cima
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            changeSlide(-1);
+        }
+        // Tecla 'f' para Tela Cheia
+        else if (e.key.toLowerCase() === 'f') {
+            toggleFullscreen();
+        }
+        // Tecla 'Home' vai para o 1º slide, 'End' vai para o último
+        else if (e.key === 'Home') {
+            e.preventDefault();
+            currentSlide = 0;
+            renderSlide();
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            currentSlide = slidesData.length - 1;
+            renderSlide();
+        }
+    });
+
+    // ================= CHECKPOINTS DE VALIDAÇÃO DO LABORATÓRIO =================
+    const labCheckpoints = {
+        1: {
+            ans: 1,
+            hint: "Observe que a regra R2: 'sem_internet ∧ ping_roteador_falhou ⟹ problema_rede_local' é a única cujas premissas casam perfeitamente com os fatos iniciais.",
+            success: "Correto! R2 dispara no 1º ciclo gerando 'problema_rede_local', que por sua vez ativa R3 no 2º ciclo."
+        },
+        2: {
+            ans: 0,
+            hint: "No encadeamento causal de Manchester, os sintomas ativam a cor de prioridade, e a cor de prioridade ativa a ação de triagem/tempo limite.",
+            success: "Excelente! As regras estão corretamente encadeadas para classificar a cor e definir a conduta médica imediata."
+        },
+        3: {
+            ans: 1,
+            hint: "Fatos primitivos são observações diretas que não podem ser deduzidas como conclusão de nenhuma outra regra da base.",
+            success: "Perfeito! Fatos inferíveis são deduzidos pelo motor; apenas fatos primitivos observáveis devem ser solicitados via input()."
+        },
+        4: {
+            ans: 1,
+            hint: "Para explicar o 'Como?', o motor precisa mapear cada conclusão gerada de volta para o conjunto de premissas que a ativou.",
+            success: "Correto! O mapeamento {consequente: premissas} permite reconstruir toda a árvore causal de deduções."
+        },
+        5: {
+            ans: 0,
+            hint: "O Forward Chaining é guiado por dados em loop iterativo; o Backward Chaining é guiado por hipóteses em busca recursiva.",
+            success: "Excelente! O Backward Chaining opera empilhando submetas recursivamente a partir da hipótese inicial."
+        }
+    };
+
+    function validateStepCheckpoint(stepNum) {
+        const selected = document.querySelector(`input[name="cp_${stepNum}"]:checked`);
+        const feedbackDiv = document.getElementById(`cp-feedback-${stepNum}`);
+        const solutionDiv = document.getElementById(`solution-${stepNum}`);
+        const cpData = labCheckpoints[stepNum];
+
+        if (!selected) {
+            feedbackDiv.className = "checkpoint-feedback incorrect";
+            feedbackDiv.innerHTML = "⚠️ Por favor, selecione uma alternativa antes de validar.";
+            return;
+        }
+
+        const chosenVal = parseInt(selected.value);
+
+        if (chosenVal === cpData.ans) {
+            feedbackDiv.className = "checkpoint-feedback correct";
+            feedbackDiv.innerHTML = `🎉 <strong>Resposta Correta!</strong> ${cpData.success}<br>🔓 <em>A resolução e o código de referência do Passo ${stepNum} foram desbloqueados abaixo!</em>`;
+            solutionDiv.classList.add('unlocked');
+            solutionDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            feedbackDiv.className = "checkpoint-feedback incorrect";
+            feedbackDiv.innerHTML = `❌ <strong>Resposta Incorreta.</strong> Dica: ${cpData.hint}`;
+            solutionDiv.classList.remove('unlocked');
+        }
+    }
+
+    // ================= DESAFIO / QUIZ DATA COM NOTAÇÃO LÓGICA =================
+    const quizQuestions = [
+        {
+            q: "1. Em relação à arquitetura de um Sistema Especialista clássico, assinale a alternativa que descreve corretamente a separação de responsabilidades:",
+            options: [
+                "A Base de Conhecimento contém o algoritmo de inferência, enquanto o Motor de Inferência armazena os fatos temporários.",
+                "O Motor de Inferência é acoplado aos dados do problema, precisando ser reescrito para cada novo domínio.",
+                "A Base de Conhecimento armazena as regras permanentes e fatos do domínio, enquanto a Memória de Trabalho guarda o estado da sessão atual, ambos manipulados por um Motor de Inferência genérico.",
+                "A Memória de Trabalho armazena as regras de produção permanentes e substitui a Base de Conhecimento.",
+                "O Módulo de Explicação assume o processamento lógico quando o Motor de Inferência encontra um conflito de regras."
+            ],
+            ans: 2,
+            explanation: "A arquitetura de um Sistema Baseado em Conhecimento prega o desacoplamento: o Motor de Inferência é o algoritmo genérico de busca, a Base de Conhecimento guarda as regras permanentes do domínio (P ⟹ Q), e a Memória de Trabalho mantém os fatos da consulta atual."
+        },
+        {
+            q: "2. O algoritmo de Forward Chaining opera fundamentado no ciclo 'Match-Resolve-Act'. No contexto da etapa 'Resolve' (Resolução de Conflitos), o que o sistema realiza?",
+            options: [
+                "Detecta e corrige erros de sintaxe nas regras cadastradas pelo desenvolvedor.",
+                "Seleciona qual regra disparar dentre múltiplas regras cujas premissas foram satisfeitas simultaneamente na memória de trabalho.",
+                "Resolve contradições lógicas forçando a exclusão de fatos inseridos pelo usuário.",
+                "Alterna a execução automaticamente para Backward Chaining.",
+                "Solicita ao usuário que reescreva as regras conflitantes em tempo de execução."
+            ],
+            ans: 1,
+            explanation: "Quando mais de uma regra tem suas premissas satisfeitas na memória de trabalho no mesmo ciclo (conjunto de conflito), a fase de 'Resolve' aplica heurísticas (prioridade, especificidade, recência) para escolher qual regra será ativada."
+        },
+        {
+            q: "3. Um hospital deseja criar um sistema para confirmar se pacientes com sintomas respiratórios têm o vírus H1N1, sendo que o exame confirmatório laboratorial é escasso e oneroso. Qual estratégia de inferência é a mais apropriada?",
+            options: [
+                "Forward Chaining, pois parte de todos os exames possíveis para descobrir qualquer doença.",
+                "Backward Chaining, pois parte da hipótese (H1N1) e investiga seletivamente apenas os sintomas e exames que sustentam essa hipótese, minimizando custos.",
+                "Forward Chaining, porque é um algoritmo estritamente guiado por objetivos.",
+                "Backward Chaining, porque ele ignora as regras da Base de Conhecimento e usa redes neurais.",
+                "Nenhuma das estratégias é aplicável a diagnósticos médicos."
+            ],
+            ans: 1,
+            explanation: "O Backward Chaining é ideal para diagnóstico focado: parte-se da hipótese (meta) e investigam-se apenas os antecedentes necessários para prová-la, evitando perguntas ou exames custosos desnecessários."
+        },
+        {
+            q: "4. No algoritmo de Encadeamento para a Frente (Forward Chaining), o encerramento natural da execução do motor ocorre quando:",
+            options: [
+                "A Memória de Trabalho é completamente esvaziada.",
+                "Uma meta pré-estabelecida é deduzida ou nenhuma nova regra pode ter suas premissas satisfeitas pelos fatos atuais.",
+                "A primeira regra verdadeira da base for disparada.",
+                "O usuário solicita o relatório do módulo de explicação.",
+                "Todas as regras da Base de Conhecimento forem disparadas obrigatoriamente."
+            ],
+            ans: 1,
+            explanation: "O Forward Chaining executa até saturar as deduções possíveis (nenhuma nova regra dispara) ou até que um fato meta pré-definido seja alcançado."
+        },
+        {
+            q: "5. Aponte a principal limitação dos Sistemas Especialistas clássicos baseados em regras quando comparados a modelos de Machine Learning contemporâneos:",
+            options: [
+                "Incapacidade estrutural de fornecer explicações transparentes para suas deduções.",
+                "Operação obrigatória como 'caixas-pretas' indecifráveis.",
+                "O 'Gargalo de Aquisição de Conhecimento', ou seja, o elevado custo e dificuldade de extrair, formalizar e manter as regras de especialistas humanos.",
+                "Exigência mandatória de processamento maciço em clusters de GPUs de alto custo.",
+                "Incompatibilidade com linguagens de programação modernas como Python."
+            ],
+            ans: 2,
+            explanation: "O principal limitador histórico dos SEs é a Engenharia do Conhecimento: capturar o conhecimento tácito humano, transformá-lo em regras 'P ⟹ Q' e mantê-las consistentes é muito custoso."
+        },
+        {
+            q: "6. Considere a regra: SE (motor_nao_liga ∧ bateria_descarregada) ⟹ problema_eletrico. Em Backward Chaining com a hipótese 'problema_eletrico', qual é a ação do motor?",
+            options: [
+                "Assume imediatamente que 'problema_eletrico' é verdadeiro sem checagem.",
+                "Busca 'motor_nao_liga' e 'bateria_descarregada' na memória de trabalho; se não existirem, transforma-os em novas submetas a serem provadas ou perguntadas.",
+                "Dispara a regra recursivamente gerando um loop infinito.",
+                "Conclui que a bateria está descarregada sem avaliar 'motor_nao_liga'.",
+                "Apaga a regra da Base de Conhecimento."
+            ],
+            ans: 1,
+            explanation: "No Backward Chaining, para provar o consequente ('problema_eletrico'), o motor decompõe a regra e estabelece suas premissas como novas submetas recursivas."
+        },
+        {
+            q: "7. O Módulo de Explicação de um Sistema Especialista responde perguntas do tipo 'Por quê?' (Why?) e 'Como?' (How?). Se o usuário pergunta 'Por quê?' diante de um questionamento do sistema, a resposta adequada é:",
+            options: [
+                "Apresentar o código-fonte em Python do motor de inferência.",
+                "Listar todas as regras cadastradas no sistema em ordem alfabética.",
+                "Exibir a hipótese/meta atual que o sistema está tentando provar e para a qual aquele dado é necessário como premissa.",
+                "Apresentar o tempo de resposta do servidor de banco de dados.",
+                "Mostrar o histórico de todas as consultas realizadas por outros usuários."
+            ],
+            ans: 2,
+            explanation: "A explicação 'Por quê?' justifica a necessidade de uma pergunta no momento presente, mostrando qual regra o sistema está tentando satisfazer e qual hipótese está buscando validar."
+        },
+        {
+            q: "8. Em um sistema de monitoramento industrial contínuo, sensores de temperatura, pressão e vibração enviam telemetria a cada segundo para gerar alertas de emergência. A abordagem de inferência mais adequada é:",
+            options: [
+                "Forward Chaining (Guiado por Dados), pois processa continuamente os fatos recebidos e deduz alertas em tempo real.",
+                "Backward Chaining (Guiado por Objetivos), pois inicia assumindo que a fábrica explodiu a cada segundo.",
+                "Busca em Largura Cega sem regras de produção.",
+                "Backward Chaining sem memória de trabalho.",
+                "Inferência manual realizada pelo operador sem automação."
+            ],
+            ans: 0,
+            explanation: "Sistemas de monitoramento e controle são clássicos casos de Forward Chaining: dados chegam continuamente dos sensores (fatos) e alimentam o motor para gerar reações e alertas (ações/conclusões)."
+        },
+        {
+            q: "9. Considere uma Base de Conhecimento com as seguintes regras:\n• R₁: A ⟹ B\n• R₂: B ⟹ C\n• R₃: D ⟹ A\nSe o fato inicial na memória de trabalho for unicamente 'D', qual será o conjunto final de fatos após o Forward Chaining?",
+            options: [
+                "{ D, A }",
+                "{ D, A, B, C }",
+                "{ A, B, C }",
+                "{ C }",
+                "{ D, C }"
+            ],
+            ans: 1,
+            explanation: "Com o fato inicial {D}: R₃ dispara e gera {D, A}. Com {D, A}, R₁ dispara e gera {D, A, B}. Com {D, A, B}, R₂ dispara e gera {D, A, B, C}. Nenhuma outra regra dispara."
+        },
+        {
+            q: "10. Qual componente da arquitetura de Sistemas Especialistas é encarregado de armazenar o conhecimento especializado formalizado a partir da interação com especialistas humanos do domínio?",
+            options: [
+                "Base de Conhecimento (Knowledge Base).",
+                "Memória de Trabalho (Working Memory).",
+                "Mecanismo de Resolução de Conflitos.",
+                "Módulo de Interface Gráfica.",
+                "Sistema de Arquivos Temporários do Sistema Operacional."
+            ],
+            ans: 0,
+            explanation: "A Base de Conhecimento (KB) é o repositório onde reside todo o conhecimento especializado modelado (fatos estáticos e regras de produção)."
+        }
+    ];
+
+    function renderQuiz() {
+        const container = document.getElementById('quiz-questions-container');
+        container.innerHTML = '';
+
+        quizQuestions.forEach((qItem, idx) => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.id = `q-card-${idx}`;
+
+            let optionsHtml = '';
+            qItem.options.forEach((optText, optIdx) => {
+                optionsHtml += `
+                    <label class="option-label" id="opt-label-${idx}-${optIdx}">
+                        <input type="radio" name="q_${idx}" value="${optIdx}">
+                        <span><strong>${String.fromCharCode(65 + optIdx)})</strong> ${optText}</span>
+                    </label>
+                `;
+            });
+
+            card.innerHTML = `
+                <div class="question-title">${qItem.q.replace(/\n/g, '<br>')}</div>
+                <div class="options-list">${optionsHtml}</div>
+                <div class="question-explanation" id="exp-${idx}">
+                    <strong>💡 Gabarito Comentado:</strong> ${qItem.explanation}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function submitQuiz() {
+        let score = 0;
+        let unanswered = 0;
+
+        quizQuestions.forEach((qItem, idx) => {
+            const selected = document.querySelector(`input[name="q_${idx}"]:checked`);
+            const card = document.getElementById(`q-card-${idx}`);
+            const exp = document.getElementById(`exp-${idx}`);
+
+            if (!selected) {
+                unanswered++;
+                return;
+            }
+
+            const chosenValue = parseInt(selected.value);
+            exp.style.display = 'block';
+
+            card.querySelectorAll('.option-label').forEach(l => l.classList.remove('correct-choice'));
+
+            if (chosenValue === qItem.ans) {
+                score++;
+                card.className = 'question-card answered-correct';
+            } else {
+                card.className = 'question-card answered-incorrect';
+                const correctLabel = document.getElementById(`opt-label-${idx}-${qItem.ans}`);
+                if (correctLabel) correctLabel.classList.add('correct-choice');
+            }
+        });
+
+        if (unanswered > 0) {
+            alert(`Atenção: Você ainda não respondeu ${unanswered} questão(ões). Por favor, responda todas antes de finalizar.`);
+            return;
+        }
+
+        const resultBox = document.getElementById('result-box');
+        const scoreCircle = document.getElementById('score-circle');
+        const resultTitle = document.getElementById('result-title');
+        const resultDesc = document.getElementById('result-desc');
+
+        const percent = (score / quizQuestions.length) * 100;
+        scoreCircle.innerText = `${score}/10`;
+        resultBox.style.display = 'block';
+
+        if (percent >= 80) {
+            scoreCircle.style.background = '#dcfce7';
+            scoreCircle.style.color = '#16a34a';
+            resultTitle.innerText = `Excelente Desempenho! (${percent}%)`;
+            resultDesc.innerText = 'Você demonstrou domínio completo sobre a arquitetura e os algoritmos de inferência de Sistemas Especialistas.';
+        } else if (percent >= 60) {
+            scoreCircle.style.background = '#fef3c7';
+            scoreCircle.style.color = '#d97706';
+            resultTitle.innerText = `Bom Desempenho! (${percent}%)`;
+            resultDesc.innerText = 'Você compreendeu a maioria dos conceitos. Recomendamos revisar os detalhes de resolução de conflitos e módulos de explicação no Modo Aula.';
+        } else {
+            scoreCircle.style.background = '#fee2e2';
+            scoreCircle.style.color = '#dc2626';
+            resultTitle.innerText = `Revisão Necessária (${percent}%)`;
+            resultDesc.innerText = 'Recomendamos navegar pelos slides do Modo Aula e acompanhar o código no Modo Laboratório para fixar os conceitos centrais.';
+        }
+
+        resultBox.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function resetQuiz() {
+        document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+        document.querySelectorAll('.question-card').forEach(c => {
+            c.className = 'question-card';
+        });
+        document.querySelectorAll('.question-explanation').forEach(e => e.style.display = 'none');
+        document.getElementById('result-box').style.display = 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function copyCode(elementId) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const codeText = el.innerText;
+        navigator.clipboard.writeText(codeText).then(() => {
+            const btns = document.querySelectorAll('.btn-copy');
+            btns.forEach(b => {
+                if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(elementId)) {
+                    const original = b.innerHTML;
+                    b.innerHTML = '✅ Copiado!';
+                    setTimeout(() => { b.innerHTML = original; }, 2000);
+                }
+            });
+        }).catch(() => {
+            alert('Não foi possível copiar automaticamente. Por favor, copie manualmente.');
+        });
+    }
+
+    // ================= INITIALIZATION =================
+    window.addEventListener('DOMContentLoaded', () => {
+        renderSlide();
+        renderQuiz();
+    });
+</script>
+</body>
+</html>
